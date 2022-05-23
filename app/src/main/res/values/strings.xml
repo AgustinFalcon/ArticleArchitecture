@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">ArticlesCleanArchitecture</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string-array name="tab_array">
+        <item>Lista</item>
+        <item>Progreso</item>
+        <item>Terminado</item>
+        <item>Ingreso Manual</item>
+    </string-array>
+</resources>
