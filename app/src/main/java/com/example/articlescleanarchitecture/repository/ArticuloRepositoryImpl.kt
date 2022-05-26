@@ -6,8 +6,10 @@ import com.example.articlescleanarchitecture.data.local.entities.ArticulodbMappe
 import com.example.articlescleanarchitecture.data.remote.ArticuloNetMapper
 import com.example.articlescleanarchitecture.data.remote.NetResultState
 import com.example.articlescleanarchitecture.data.remote.retrofit.StockService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import java.lang.Exception
 import javax.inject.Inject
 
@@ -19,32 +21,27 @@ class ArticuloRepositoryImpl @Inject constructor(
 ): ArticuloRepository {
 
 
-    override suspend fun getArticulos(sucursal: String, offset: Int): Flow<NetResultState<List<Articulo>>> = flow {
-        emit(NetResultState.Loading)
+    override suspend fun getArticulos(sucursal: String, offset: Int): NetResultState<List<Articulo>> = withContext(Dispatchers.IO) {
         try {
-            //if (articuloDao.getAllArticulos().isEmpty()) {
+            //return@withContext (NetResultState.Loading)
+            if (articuloDao.getAllArticulos().isEmpty()) {
             val networkArticulo = stockService.getArticleData(sucursal = sucursal, offset = offset)
             Log.d(TAG, "Hello. API Call with ${networkArticulo.code()} @ URL: ${networkArticulo.raw().request.url}")
-            if (networkArticulo.isSuccessful) {
-                val articulos = networkArticulo.body()?.let { netMapper.mapFromEntityList(it.articulos) }
-                for (art in articulos!!) {
-                    articuloDao.insert(dbMapper.mapToEntity(art))
-                }
-                val cacheArt = articuloDao.getAllArticulos()
-                emit(NetResultState.Success(dbMapper.mapFromEntityList(cacheArt)))
-            } else {
-                //emit(NetResultState.Failure(networkArticulo.code(), networkArticulo.message()))
-                Log.d(TAG, "getArticulos: Network state failure")
+
+            netMapper.mapFromEntityList(networkArticulo.body()!!.articulos).forEach {
+                articuloDao.insert(dbMapper.mapToEntity(it))
             }
-            //} else {
-            //    val cacheArt = articuloDao.getAllArticulos()
-            //    emit(NetResultState.Success(dbMapper.mapFromEntityList(cacheArt)))
-            // }
+            val cacheArt = articuloDao.getAllArticulos()
+                return@withContext (NetResultState.Success(dbMapper.mapFromEntityList(cacheArt)))
+
+            } else {
+                val cacheArt = articuloDao.getAllArticulos()
+                return@withContext (NetResultState.Success(dbMapper.mapFromEntityList(cacheArt)))
+            }
         } catch (e: Exception) {
-            emit(NetResultState.Error(e))
+            return@withContext (NetResultState.Error(e))
         }
     }
-
 
     companion object {
         const val TAG = "ArticuloRepoImpl"
